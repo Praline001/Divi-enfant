@@ -15,6 +15,9 @@ Thème enfant de Divi personnalisé pour nos besoins :
 
 ## Autorisation des éditeurs à lire les messages reçus via Gravity Forms
 
+## Style Gavity Forms
+Ajoute le style des formulaires de contact Divi aux 
+
 ## Enregistrement des modules à personnaliser Divi dans le thème enfant
 Dans le fichier function.php et le dossier custom-modules. Code qui permet d'utiliser les texte alternatif par défaut de WordPress au lieu de celui des champs des modules de Divi.
 Fonctionne pour les modules Image, Image pleine largeur et Présentation. 
