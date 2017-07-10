@@ -1,7 +1,20 @@
 <?php
+/*==================================================================
+ ** SOMMAIRE **
+ ==============
+ *1* Charge le CSS du thème parent
+ *2* Autorise la lecture des messages Gravity Forms pour les éditeurs
+ *3* Installation automatique des extensions
+ *4* Enregistre les modules personnalisés dans le thème enfant
+ *5* Divi Welcome Dashboard pour tous les utilisateurs
+ *6* Masque la page Divi Dashboard dans la liste des pages
+ *7* Builder Divi automatiquement autorisé
+ *8* Change la position de la sidebar par défaut
+===================================================================*/
+
 
 /*==================================================================
- * Loading the parent theme css.
+ *1* Charge le CSS du thème parent
 ===================================================================*/
 function divi_child_load_parent_css() {
 
@@ -11,7 +24,17 @@ function divi_child_load_parent_css() {
 add_action( 'wp_enqueue_scripts', 'divi_child_load_parent_css' );
 
 /*==================================================================
-* Installation automatique de plugins
+ *2* Autorise la lecture des messages Gravity Forms pour les éditeurs
+===================================================================*/
+ 
+ function wpc_gravity_forms() {
+ 	$role = get_role('editor');
+ 	$role->add_cap( 'gravityforms_view_entries' );
+ }
+ add_action('admin_init','wpc_gravity_forms');
+
+/*==================================================================
+ *3* Installation automatique des extensions
 ===================================================================*/
 
 /* Integration de TGM_Plugin_Activation class */
@@ -24,6 +47,36 @@ function enregistrer_mes_plugins() {
 
 $plugins = array(
 // liste des plugins
+	array(
+ 'name' => 'WP Rocket', // Le nom du plugin
+ 'slug' => 'wp-rocket', // Le slug du plugin (généralement le nom du dossier)
+ 'source' => get_stylesheet_directory() . '/plugins/wp-rocket.zip', // le chemin relatif du plugin au format .zip
+ 'required' => false, // FALSE signifie que le plugin est seulement recommandé
+ ),
+	array(
+ 'name' => 'Gravity Forms', // Le nom du plugin
+ 'slug' => 'gravityforms', // Le slug du plugin (généralement le nom du dossier)
+ 'source' => get_stylesheet_directory() . '/plugins/gravityforms.zip', // le chemin relatif du plugin au format .zip
+ 'required' => false, // FALSE signifie que le plugin est seulement recommandé
+ ),
+	array(
+ 'name' => 'Divi French', // Le nom du plugin
+ 'slug' => 'divi-french', // Le slug du plugin (généralement le nom du dossier)
+ 'source' => get_stylesheet_directory() . '/plugins/divi-french-2.7.5.1.zip', // le chemin relatif du plugin au format .zip
+ 'required' => false, // FALSE signifie que le plugin est seulement recommandé
+ ),	
+  array(
+ 'name' => 'SEOPress', // Le nom du plugin
+ 'slug' => 'wp-seopress', // Le slug du plugin (généralement le nom du dossier)
+ 'source' => get_stylesheet_directory() . '/plugins/wp-seopress', // le chemin relatif du plugin au format .zip
+ 'required' => false, // FALSE signifie que le plugin est seulement recommandé
+ ), 
+  array(
+ 'name' => 'SEOPress PRO', // Le nom du plugin
+ 'slug' => 'wp-seopress-pro', // Le slug du plugin (généralement le nom du dossier)
+ 'source' => get_stylesheet_directory() . '/plugins/wp-seopress-pro', // le chemin relatif du plugin au format .zip
+ 'required' => false, // FALSE signifie que le plugin est seulement recommandé
+ ), 
 	array(
  'name' => 'Format Media Titles', // Le nom du plugin
  'slug' => 'format-media-titles', // Le slug du plugin (généralement le nom du dossier)
@@ -91,17 +144,7 @@ $config = array(
 }
 
 /*==================================================================
-* Autoriser lecture pour les éditeurs dans Gravity Forms
-===================================================================*/
- 
- function wpc_gravity_forms() {
-   $role = get_role('editor');
-   $role->add_cap( 'gravityforms_view_entries' );
- }
- add_action('admin_init','wpc_gravity_forms');
-
-/*==================================================================
-Enregistre les modules personnalisés dans votre thème enfant
+ *4* Enregistre les modules personnalisés dans le thème enfant
 ===================================================================*/
 function divi_child_theme_setup_image() {
    if ( class_exists('ET_Builder_Module')) {
@@ -138,35 +181,61 @@ function divi_child_theme_setup_blurb_module() {
 add_action('wp', 'divi_child_theme_setup_blurb_module', 9999);
 
 /*==================================================================
-* Divi Builder
+*5* Divi Welcome Dashboard pour tous les utilisateurs
 ===================================================================*/
 
-// Divi builder toujours activé
+add_filter('user_has_cap', 'se_119694_user_has_cap');
+ function se_119694_user_has_cap($capabilities){
+ global $pagenow;
+      if ($pagenow == 'index.php')
+           $capabilities['edit_theme_options'] = 1;
+      return $capabilities;
+ }
+add_action( 'load-index.php', 'show_welcome_panel' );
+
+function show_welcome_panel() {
+    $user_id = get_current_user_id();
+
+    if ( 1 != get_user_meta( $user_id, 'show_welcome_panel', true ) )
+        update_user_meta( $user_id, 'show_welcome_panel', 1 );
+}
+
+$PrivateRole = get_role('author');
+$PrivateRole -> add_cap('read_private_pages');
+
+$PrivateRole = get_role('editor');
+$PrivateRole -> add_cap('read_private_pages');
+
+$PrivateRole = get_role('subscriber');
+$PrivateRole -> add_cap('read_private_pages');
+
+/*==================================================================
+*6* Masque la page Divi Dashboard dans la liste des pages
+===================================================================*/
+
+function ts_exclude_pages_from_admin($query) {
+
+  if ( ! is_admin() )
+    return $query;
+
+  global $pagenow, $post_type;
+
+  if ( !current_user_can( 'administrator' ) && $pagenow == 'edit.php' && $post_type == 'page' )
+    $query->query_vars['post__not_in'] = array( '609' ); // Enter your page IDs here
+
+}
+add_filter( 'parse_query', 'ts_exclude_pages_from_admin' );
+
+/*==================================================================
+*7* Builder Divi automatiquement autorisé
+===================================================================*/
+
 add_action('et_builder_always_enabled',function() {
 return true;
 });
 
-// Supprime le bouton "Utiliser l'éditeur par défaut" pour les articles
-function remove_divi_page_builder_post(){
-$screen = get_current_screen();
-if($screen->post_type == 'post'){
-echo '<style>#et_pb_toggle_builder{display:none;}</style>';
-}
-}
-add_action('admin_head', 'remove_divi_page_builder_post');
-
-// Supprime le bouton "Utiliser l'éditeur par défaut" pour les pages
- 
-function remove_divi_page_builder_page(){
-$screen = get_current_screen();
-if($screen->post_type == 'page'){
-echo '<style>#et_pb_toggle_builder.et_pb_builder_is_used{display:none;}</style>';
-}
-}
-add_action('admin_head', 'remove_divi_page_builder_page');
-
 /*==================================================================
-Change la position de la sidebar par défaut. 
+*8* Change la position de la sidebar par défaut.
 ===================================================================*/
 
 if (!function_exists('et_single_settings_meta_box')) :
